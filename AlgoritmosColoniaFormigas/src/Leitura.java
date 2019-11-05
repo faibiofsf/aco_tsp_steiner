@@ -1,72 +1,163 @@
+package LerArquivo;
+
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Leitura {
 
+	static double E[][];
+	static int especiais[];
+	static boolean[] visitados;
 	
+	public Leitura(){
+		
+	}
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
+		
+		Scanner f;
 		try {
-
-			double[][] E;
-			int[] nosEspeciais;
-
-			int dimensao = 0;
-			Scanner f = new Scanner(new File("src\\Testes\\SteinerTree\\steinb1.txt"));
-			String s = f.nextLine();
-
-			dimensao = Integer.parseInt(s.split(" ")[1])+1;
-
-			E = new double[dimensao][dimensao];
-
-			s = f.nextLine();
-			String[] linha = s.split(" ");
+			f = new Scanner(new File("src\\Testes\\SteinerTree\\steinb1.txt"));
+			String[] s = f.nextLine().split("\t");
+			int tamanho = Integer.parseInt(s[1]);
 			
-			while ((!s.equals("EOF") || !s.equals("eof")) && linha.length > 3) {
-
+			Leitura.E = new double[tamanho+1][tamanho+1];
+			
+			while(f.hasNext() && (s = f.nextLine().split("\t")).length > 2) {
 				
-				int i = Integer.parseInt(linha[1]);
-				int j = Integer.parseInt(linha[2]);				
+				int i = Integer.parseInt(s[1]);
+				int j = Integer.parseInt(s[2]);
+				int d = Integer.parseInt(s[3]);
 				
-				double valor = Double.parseDouble(linha[3]);
-				
-				E[i][j] = valor;
-				E[j][i] = valor;
-				
-				s = f.nextLine();
-				linha = s.split(" ");
+				Leitura.E[i][j] = d;
+				Leitura.E[j][i] = d;
 			}
-
-			int numEspeciais = Integer.parseInt(linha[1]);
 			
-			nosEspeciais = new int[numEspeciais];
+			int nEspeciais = Integer.parseInt(s[1]);
+			
+			Leitura.especiais = new int[nEspeciais];
+			
 			int i = 0;
-			while(f.hasNext()){
+			while(f.hasNext()) {
 				
-				nosEspeciais[i] = f.nextInt();
-				i++;				
+				int no = f.nextInt();
+				
+				Leitura.especiais[i]=no;
+				
+				i++;
 			}
 			
 			f.close();
 			
-			for (int j = 0; j < E.length; j++) {
-				for (int j2 = 0; j2 < E[0].length; j2++) {
-					System.out.print(" "+E[j][j2]);
+			for (int i1 = 0; i1 < Leitura.E.length; i1++) {
+				for (int j = 0; j < Leitura.E[i1].length; j++) {
+					System.out.print(Leitura.E[i1][j]+"\t");
 				}
 				System.out.print("\n");
 			}
 			
-
-			for (int j = 0; j < nosEspeciais.length; j++) {
-				System.out.print(" "+ nosEspeciais[j]);
+			System.out.print("\n");
+			
+			for (int i1 = 0; i1 < Leitura.especiais.length; i1++) {
+				System.out.print(Leitura.especiais[i1]+"\t");
 			}
 			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		Leitura.visitados = new boolean[Leitura.E.length];
+		
+		No arvore = new No(3, null);
+		
+		Leitura.visitados[arvore.getVertice()] = true;
+		
+		Leitura l = new Leitura();
+		
+		l.formarCaminho(arvore);
+		System.out.print("\n");
+		for (int i = 0; i < Leitura.visitados.length; i++) {
+			System.out.print(" "+Leitura.visitados[i]);
+		}
+		
+		System.out.print("\n");
+		
+		l.percorrerArvore(arvore);
+			
+	}
+	
+	
+	private void percorrerArvore(No arvore) {
+		
+		if(arvore.getVizinhanca()!=null) {
+			for (int i = 0; i < arvore.getVizinhanca().size(); i++) {
+				System.out.print("["+arvore.getVertice()+", "+arvore.getVizinhanca().get(i).getVertice() +"]");
+				percorrerArvore(arvore.getVizinhanca().get(i));
+			}
+			
+			System.out.print("\n");
+		}
+		
+	}
+	
+	
+	private void formarCaminho(No arvore) {
+		
+		ArrayList<No> vizinhanca = new ArrayList<No>();
+		
+		for (int i = 0; i < E.length; i++) {
+			if ( Leitura.visitados[i] == false) {
+				if(E[arvore.getVertice()][i] != 0) {
+					vizinhanca.add(new No(i, null));
+					 Leitura.visitados[i] = true;
+				}
+			}
+		}
+		
+		if(!vizinhanca.isEmpty()) {
+			arvore.setVizinhanca(vizinhanca);
+			for (int i = 0; i < arvore.getVizinhanca().size(); i++) {
+				formarCaminho(arvore.getVizinhanca().get(i));
+			}
+		}
+		
+	}
+	
+	
+}
+	
+class No {
+	 
+	Integer vertice;
+	ArrayList<No> vizinhanca;
+	
+	No(Integer vertice, ArrayList<No> vizinhos){
+		this.setVertice(vertice);
+		this.setVizinhanca(vizinhos);
+	}
+	
+	No(){
+		vertice = -1;
+		vizinhanca = null;
+	}
+	
+	public Integer getVertice() {
+		return vertice;
 	}
 
+	public void setVertice(Integer vertice) {
+		this.vertice = vertice;
+	}
+
+	public ArrayList<No> getVizinhanca() {
+		return vizinhanca;
+	}
+
+	public void setVizinhanca(ArrayList<No> vizinhanca) {
+		this.vizinhanca = vizinhanca;
+	}
 }

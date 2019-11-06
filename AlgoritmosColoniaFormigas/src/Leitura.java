@@ -20,7 +20,7 @@ public class Leitura {
 		
 		Scanner f;
 		try {
-			f = new Scanner(new File("src\\Testes\\SteinerTree\\steinb1.txt"));
+			f = new Scanner(new File("src\\LerArquivo\\steinfa.txt"));
 			String[] s = f.nextLine().split("\t");
 			int tamanho = Integer.parseInt(s[1]);
 			
@@ -86,20 +86,33 @@ public class Leitura {
 		
 		System.out.print("\n");
 		
-		l.percorrerArvore(arvore);
+		double distancia = l.percorrerArvore(arvore);
+		
+		System.out.println("\n d: "+distancia);
 			
 	}
 	
 	
-	private void percorrerArvore(No arvore) {
+	private double percorrerArvore(No arvore) {
 		
 		if(arvore.getVizinhanca()!=null) {
+			double distancia = 0;
 			for (int i = 0; i < arvore.getVizinhanca().size(); i++) {
+				distancia+=Leitura.E[arvore.getVertice()][arvore.getVizinhanca().get(i).getVertice()];
+				
 				System.out.print("["+arvore.getVertice()+", "+arvore.getVizinhanca().get(i).getVertice() +"]");
-				percorrerArvore(arvore.getVizinhanca().get(i));
+				System.out.print(" D: "+distancia);
+				
+				distancia += percorrerArvore(arvore.getVizinhanca().get(i));
 			}
 			
 			System.out.print("\n");
+			
+			return distancia;
+			
+		}		
+		else {
+			return 0;
 		}
 		
 	}
@@ -113,7 +126,7 @@ public class Leitura {
 			if ( Leitura.visitados[i] == false) {
 				if(E[arvore.getVertice()][i] != 0) {
 					vizinhanca.add(new No(i, null));
-					 Leitura.visitados[i] = true;
+					Leitura.visitados[i] = true;
 				}
 			}
 		}

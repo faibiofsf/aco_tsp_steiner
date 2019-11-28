@@ -33,7 +33,7 @@ public class ASRank {
 			String saidaMelhorGlobal, String saidaDiversidade) {
 		// Abrir arquivo do problema
 		this.iniciarAmbiente(entrada);
-		
+
 		this.alfa = alfa;
 		this.alfatemp = alfa;
 		this.beta = beta;
@@ -48,14 +48,15 @@ public class ASRank {
 		try {
 			this.arqPopulacao = new FileWriter(saidaPopulacao);
 			this.arqMelhorGlobal = new FileWriter(saidaMelhorGlobal);
-			this.arqSaidaDiversidade = new FileWriter(saidaDiversidade);
+			// this.arqSaidaDiversidade = new FileWriter(saidaDiversidade);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		this.gravarArqPopulacao = new PrintWriter(arqPopulacao);
 		this.gravarArqMelhorGlobal = new PrintWriter(arqMelhorGlobal);
-		this.gravarArqSaidaDiversidade = new PrintWriter(arqSaidaDiversidade);
+		// this.gravarArqSaidaDiversidade = new
+		// PrintWriter(arqSaidaDiversidade);
 		random = new Random();// 12345);
 		this.probSelecaoAleatoria = probSelecaoAleatoria;
 		this.delt = delt;
@@ -92,7 +93,7 @@ public class ASRank {
 					// Cria a rota da formiga e atualiza a distancia
 					this.criaRota(formiga);
 				}
-				
+
 				formiga.setLk(this.calcularDistancia(formiga));
 
 				colonia.add(formiga);
@@ -104,28 +105,53 @@ public class ASRank {
 			// Atualizar Feromonio
 			this.atualizaFeromomio();
 
-			System.out.println("MelhorIteração: "+melhorFormiga.getLk());
-			
+			// System.out.println("MelhorIteração: "+melhorFormiga.getLk());
+
+			textoMelhorGlobal[iteracao] = iteracao + "\t" + melhorFormiga.getLk();
+
+			// Media de fitness da colonia
+			double fitnessMedio = 0.0;
+			for (Formiga formiga : colonia) {
+				fitnessMedio += formiga.getLk();
+			}
+			fitnessMedio = fitnessMedio / colonia.size();
+			textoMediaPopulacao[iteracao] = String.format("%.3f", fitnessMedio);
+
+			// Melhor Formiga colonia
+			textoMelhorFormigaPopulacao[iteracao] = colonia.get(0).getLk() + "";
+
+			// Pior Formiga colonia
+			textoPiorFormigaPopulacao[iteracao] = String.format("%.3f", colonia.get(colonia.size() - 1).getLk());
+
 			colonia.clear();
 
 			iteracao++;
 
 		}
-		
-		System.out.println("\n\nMelhor Formiga Todas: "+melhorFormiga.getLk());
-		
+
+		System.out.println("\n\nMelhor Formiga Todas: " + melhorFormiga.getLk());
+
 		for (int i = 0; i < melhorFormiga.getRota().size(); i++) {
-			System.out.print(" "+melhorFormiga.getRota().get(i));
+			System.out.print(" " + melhorFormiga.getRota().get(i));
 		}
 		System.out.print("\n");
-		
+
+		for (String mFormiga : textoMelhorGlobal) {
+			gravarArqMelhorGlobal.println(mFormiga);
+		}
+
+		for (int i = 0; i < textoMelhorFormigaPopulacao.length; i++) {
+			gravarArqPopulacao.println(i + "\t" + textoMelhorFormigaPopulacao[i] + "\t" + textoMediaPopulacao[i] + "\t"
+					+ textoPiorFormigaPopulacao[i]);
+		}
+
 		try {
 			gravarArqPopulacao.close();
 			arqPopulacao.close();
 			gravarArqMelhorGlobal.close();
 			arqMelhorGlobal.close();
-			gravarArqSaidaDiversidade.close();
-			arqSaidaDiversidade.close();
+			// gravarArqSaidaDiversidade.close();
+			// arqSaidaDiversidade.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -202,22 +228,22 @@ public class ASRank {
 	}
 
 	private void criaRota(Formiga formiga) {
-		//int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
-		int cidadeInicio = random.nextInt(this.d.length);
-		
+		int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
+		//int cidadeInicio = random.nextInt(this.d.length);
+
 		No arvore = new No(cidadeInicio);
-		//System.out.println("Inicio: " + cidadeInicio);
+		// System.out.println("Inicio: " + cidadeInicio);
 		formiga.setSk(arvore);
 		formiga.insertVertices(arvore);
 
 		this.cidadesVisitadas[cidadeInicio] = true;
-		this.contadorEspeciais = 0;
+		this.contadorEspeciais = 1;
 
-		for (int i = 0; i < this.especiais.length; i++) {
-			if(this.especiais[i] == cidadeInicio){
+		/*for (int i = 0; i < this.especiais.length; i++) {
+			if (this.especiais[i] == cidadeInicio) {
 				this.contadorEspeciais = 1;
 			}
-		}
+		}*/
 
 		ArrayList<No> vertices = formiga.getVertices();
 
@@ -253,8 +279,8 @@ public class ASRank {
 						this.contadorEspeciais++;
 					}
 				}
-			}
-			else break;
+			} else
+				break;
 
 		}
 
@@ -262,22 +288,22 @@ public class ASRank {
 	}
 
 	private void criaRotaAleatoria(Formiga formiga) {
-		//int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
-		int cidadeInicio = random.nextInt(this.d.length);
+		int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
+		//int cidadeInicio = random.nextInt(this.d.length);
 		No arvore = new No(cidadeInicio);
-		//System.out.println("Inicio: " + cidadeInicio);
+		// System.out.println("Inicio: " + cidadeInicio);
 		formiga.setSk(arvore);
 		formiga.insertVertices(arvore);
 
 		this.cidadesVisitadas[cidadeInicio] = true;
-		this.contadorEspeciais = 0;
+		this.contadorEspeciais = 1;
 
-		for (int i = 0; i < this.especiais.length; i++) {
-			if(this.especiais[i] == cidadeInicio){
+		/*for (int i = 0; i < this.especiais.length; i++) {
+			if (this.especiais[i] == cidadeInicio) {
 				this.contadorEspeciais = 1;
 			}
-		}
-		
+		}*/
+
 		ArrayList<No> vertices = formiga.getVertices();
 
 		while (this.contadorEspeciais < this.especiais.length) {
@@ -311,8 +337,8 @@ public class ASRank {
 						this.contadorEspeciais++;
 					}
 				}
-			}
-			else break;
+			} else
+				break;
 
 		}
 
@@ -323,10 +349,10 @@ public class ASRank {
 
 		double[][] delta = new double[feromonio.length][feromonio[0].length];
 
-		if(this.delt > colonia.size()){
+		if (this.delt > colonia.size()) {
 			this.delt = colonia.size();
 		}
-		
+
 		for (int i = 0; i < this.delt; i++) {
 			Formiga formiga = colonia.get(i);
 			deltaFeromomio(formiga, delta, formiga.getSk());
@@ -347,7 +373,7 @@ public class ASRank {
 
 	// Calcula o delta de feromonio
 	private void deltaFeromomio(Formiga formiga, double[][] delta, No arvore) {
-		double deltatIJk = (1/formiga.getVertices().size() * Qk) / formiga.getLk();
+		double deltatIJk = (1 / formiga.getVertices().size() * Qk) / formiga.getLk();
 
 		if (arvore.getSubArvore().size() != 0) {
 
@@ -369,7 +395,7 @@ public class ASRank {
 	 * @param posicao
 	 * @return
 	 */
-	private int arestaSelecionadaJRoleta(Formiga formiga,  ArrayList<int[]> vizinhanca) {
+	private int arestaSelecionadaJRoleta(Formiga formiga, ArrayList<int[]> vizinhanca) {
 		double somatorio = 0;
 		for (int i = 0; i < vizinhanca.size(); i++) {
 			somatorio += atratividadeClassicaDaAresta(vizinhanca.get(i)[0], vizinhanca.get(i)[1]);
@@ -420,13 +446,13 @@ public class ASRank {
 			this.melhorFormiga.setVertices(colonia.get(0).getVertices());
 		}
 	}
-	
+
 	private double calcularDistancia(Formiga formiga) {
-		
+
 		return this.percorrerArvore(formiga, formiga.getSk());
-		
+
 	}
-	
+
 	private double percorrerArvore(Formiga formiga, No arvore) {
 
 		if (arvore.getSubArvore().size() != 0) {
@@ -437,7 +463,7 @@ public class ASRank {
 				distancia += this.d[cidadeI][cidadeJ];
 
 				formiga.insertRota("[" + cidadeI + ", " + cidadeJ + "]");
-				
+
 				distancia += percorrerArvore(formiga, arvore.getSubArvore().get(i));
 			}
 
@@ -453,55 +479,55 @@ public class ASRank {
 	private void iniciarAmbiente(String path) {
 		// TODO Auto-generated method stub
 
-				this.arestas = new ArrayList<int[]>();
+		this.arestas = new ArrayList<int[]>();
 
-				Scanner f;
-				try {
-					f = new Scanner(new File(path));
-					String[] s = f.nextLine().split(" ");
-					int tamanho = Integer.parseInt(s[1]);
+		Scanner f;
+		try {
+			f = new Scanner(new File(path));
+			String[] s = f.nextLine().split(" ");
+			int tamanho = Integer.parseInt(s[1]);
 
-					double[][] E = new double[tamanho + 1][tamanho + 1];
+			double[][] E = new double[tamanho + 1][tamanho + 1];
 
-					while (f.hasNext() && (s = f.nextLine().split(" ")).length > 2) {
+			while (f.hasNext() && (s = f.nextLine().split(" ")).length > 2) {
 
-						int i = Integer.parseInt(s[1]);
-						int j = Integer.parseInt(s[2]);
-						int d = Integer.parseInt(s[3]);
+				int i = Integer.parseInt(s[1]);
+				int j = Integer.parseInt(s[2]);
+				int d = Integer.parseInt(s[3]);
 
-						int[] aresta1 = { i, j, d };
-						int[] aresta2 = { j, i, d };
+				int[] aresta1 = { i, j, d };
+				int[] aresta2 = { j, i, d };
 
-						arestas.add(aresta1);
-						arestas.add(aresta2);
+				arestas.add(aresta1);
+				arestas.add(aresta2);
 
-						E[i][j] = d;
-						E[j][i] = d;
-					}
+				E[i][j] = d;
+				E[j][i] = d;
+			}
 
-					int nEspeciais = Integer.parseInt(s[1]);
+			int nEspeciais = Integer.parseInt(s[1]);
 
-					int[] especiais = new int[nEspeciais];
+			int[] especiais = new int[nEspeciais];
 
-					int i = 0;
-					while (f.hasNext()) {
+			int i = 0;
+			while (f.hasNext()) {
 
-						int no = f.nextInt();
+				int no = f.nextInt();
 
-						especiais[i] = no;
+				especiais[i] = no;
 
-						i++;
-					}
+				i++;
+			}
 
-					f.close();
+			f.close();
 
-					this.d = E;
-					this.especiais = especiais;
+			this.d = E;
+			this.especiais = especiais;
 
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 	}
 
@@ -516,7 +542,7 @@ public class ASRank {
 			double[] q = { 0.5 };
 			double[] ro = { 0.2 };
 			int[] tamColonia = { 50 };
-			int[] iteracoes = { 100 };
+			int[] iteracoes = { 100, 1000, 10000 };
 			// 0 - roleta, 1 - torneio
 			int[] selecao = { 0 };
 			String[] problema = { "steinb1" };
@@ -526,15 +552,15 @@ public class ASRank {
 			// Sem controle de diversidade = 0; com controle de diversidade = 1
 			int[] diversidade = { 0 };
 
-			int numeroExecucoes = 1;
+			int numeroExecucoes = 30;
 
 			for (int div = 0; div < diversidade.length; div++) {
 				for (int delt = 0; delt < del.length; delt++) {
 					for (int sa = 0; sa < pobSelecaoAleatoria.length; sa++) {
 						for (int pr = 0; pr < problema.length; pr++) {
 
-							arqSaidas = new FileWriter("src\\Testes\\Execs\\ASRank\\SteinerTree\\saida_testes_" + problema[pr]
-									+ "_diversidade-" + diversidade[div] + ".txt");
+							arqSaidas = new FileWriter("src\\Testes\\Execs\\ASRank\\SteinerTree\\saida_testes_"
+									+ problema[pr] + "_diversidade-" + diversidade[div] + ".txt");
 							PrintWriter saida = new PrintWriter(arqSaidas);
 
 							for (int se = 0; se < selecao.length; se++) {
@@ -552,8 +578,8 @@ public class ASRank {
 															String saidaPopulacao = "src\\Testes\\Execs\\ASRank\\SteinerTree\\Testes_"
 																	+ l2 + "execucao_" + problema[pr]
 																	+ "_saidaPopulacao tamColonia-" + tamColonia[k2]
-																	+ "_iteracoes-" + iteracoes[l] + "_diversidade-" + diversidade[div] + "_selecao-"
-																	+ selecao[se] 
+																	+ "_iteracoes-" + iteracoes[l] + "_diversidade-"
+																	+ diversidade[div] + "_selecao-" + selecao[se]
 																	+ "_alfa-" + alfa[i] + "_beta-" + beta[j]
 																	+ "_feromonio-" + q[j2] + "_ro-" + ro[k] + "_SA-"
 																	+ pobSelecaoAleatoria[sa] + "_del-" + del[delt]
@@ -561,8 +587,8 @@ public class ASRank {
 															String saidaMelhorGlobal = "src\\Testes\\Execs\\ASRank\\SteinerTree\\Testes_"
 																	+ l2 + "execucao_" + problema[pr]
 																	+ "_saidaMelhorGlobal tamColonia-" + tamColonia[k2]
-																	+ "_iteracoes-" + iteracoes[l] + "_diversidade-" + diversidade[div] + "_selecao-"
-																	+ selecao[se]
+																	+ "_iteracoes-" + iteracoes[l] + "_diversidade-"
+																	+ diversidade[div] + "_selecao-" + selecao[se]
 																	+ "_alfa-" + alfa[i] + "_beta-" + beta[j]
 																	+ "_feromonio-" + q[j2] + "_ro-" + ro[k] + "_SA-"
 																	+ pobSelecaoAleatoria[sa] + "_del-" + del[delt]
@@ -570,8 +596,8 @@ public class ASRank {
 															String saidaDiversidade = "src\\Testes\\Execs\\ASRank\\SteinerTree\\SaidaDiversidade_"
 																	+ l2 + "execucao_" + problema[pr]
 																	+ "_saidaMelhorGlobal tamColonia-" + tamColonia[k2]
-																	+ "_iteracoes-" + iteracoes[l] + "_diversidade-" + diversidade[div] + "_selecao-"
-																	+ selecao[se]
+																	+ "_iteracoes-" + iteracoes[l] + "_diversidade-"
+																	+ diversidade[div] + "_selecao-" + selecao[se]
 																	+ "_alfa-" + alfa[i] + "_beta-" + beta[j]
 																	+ "_feromonio-" + q[j2] + "_ro-" + ro[k] + "_SA-"
 																	+ pobSelecaoAleatoria[sa] + "_del-" + del[delt]
@@ -585,8 +611,8 @@ public class ASRank {
 
 															String texto = "Teste\t" + l2 + "\texecucao\t"
 																	+ problema[pr] + "\ttamColonia\t" + tamColonia[k2]
-																	+ "\titeracoes\t" + iteracoes[l] + "\tdiversidade\t" + diversidade[div] + "\tselecao\t"
-																	+ selecao[se] 
+																	+ "\titeracoes\t" + iteracoes[l] + "\tdiversidade\t"
+																	+ diversidade[div] + "\tselecao\t" + selecao[se]
 																	+ "\talfa\t" + alfa[i] + "\tbeta\t" + beta[j]
 																	+ "\tQ\t" + q[j2] + "\tro\t" + ro[k] + "\tSA\t"
 																	+ pobSelecaoAleatoria[sa] + "_del-" + del[delt]
@@ -681,10 +707,10 @@ class Formiga implements Comparable<Formiga> {
 	public void insertVertices(No vertice) {
 		this.vertices.add(vertice);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public void setVertices(ArrayList<No> vertices) {
-		this.vertices = (ArrayList<No>)vertices.clone();
+		this.vertices = (ArrayList<No>) vertices.clone();
 	}
 
 	public ArrayList<String> getRota() {
@@ -694,7 +720,7 @@ class Formiga implements Comparable<Formiga> {
 	public void insertRota(String rota) {
 		this.rota.add(rota);
 	}
-	
+
 	public void setRota(ArrayList<String> rota) {
 		this.rota = (ArrayList<String>) rota.clone();
 	}

@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.Random;
 import java.util.Scanner;
 
-
 public class AntSystem {
 
 	private double[][] d;
@@ -47,14 +46,14 @@ public class AntSystem {
 		try {
 			this.arqPopulacao = new FileWriter(saidaPopulacao);
 			this.arqMelhorGlobal = new FileWriter(saidaMelhorGlobal);
-			this.arqSaidaDiversidade = new FileWriter(saidaDiversidade);
+			//this.arqSaidaDiversidade = new FileWriter(saidaDiversidade);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		this.gravarArqPopulacao = new PrintWriter(arqPopulacao);
 		this.gravarArqMelhorGlobal = new PrintWriter(arqMelhorGlobal);
-		this.gravarArqSaidaDiversidade = new PrintWriter(arqSaidaDiversidade);
+		//this.gravarArqSaidaDiversidade = new PrintWriter(arqSaidaDiversidade);
 		random = new Random();// 12345);
 		this.probSelecaoAleatoria = probSelecaoAleatoria;
 		this.diversidade = diversidade;
@@ -70,13 +69,11 @@ public class AntSystem {
 		}
 		int iteracao = 0;
 
-		/*
-		 * String textoDiversidade[] = new String[numeroIteracoes]; String
-		 * textoMelhorGlobal[] = new String[numeroIteracoes]; String
-		 * textoMelhorFormigaPopulacao[] = new String[numeroIteracoes]; String
-		 * textoMediaPopulacao[] = new String[numeroIteracoes]; String
-		 * textoPiorFormigaPopulacao[] = new String[numeroIteracoes];
-		 */
+		String textoDiversidade[] = new String[numeroIteracoes];
+		String textoMelhorGlobal[] = new String[numeroIteracoes];
+		String textoMelhorFormigaPopulacao[] = new String[numeroIteracoes];
+		String textoMediaPopulacao[] = new String[numeroIteracoes];
+		String textoPiorFormigaPopulacao[] = new String[numeroIteracoes];
 
 		while (iteracao < numeroIteracoes) {
 
@@ -103,8 +100,8 @@ public class AntSystem {
 
 				formiga.setLk(this.calcularDistancia(formiga));
 
-				//System.out.println(formiga.getLk());
-				
+				// System.out.println(formiga.getLk());
+
 				colonia.add(formiga);
 			}
 
@@ -113,29 +110,54 @@ public class AntSystem {
 
 			// Atualizar Feromonio
 			this.atualizaFeromomio();
+
+			// System.out.println("MelhorIteração: "+melhorFormiga.getLk());
 			
-			//System.out.println("MelhorIteração: "+melhorFormiga.getLk());
-			
+			textoMelhorGlobal[iteracao] = iteracao + "\t" + melhorFormiga.getLk();
+
+			// Media de fitness da colonia
+			double fitnessMedio = 0.0;
+			for (Formiga formiga : colonia) {
+				fitnessMedio += formiga.getLk();
+			}
+			fitnessMedio = fitnessMedio / colonia.size();
+			textoMediaPopulacao[iteracao] = String.format("%.3f", fitnessMedio);
+
+			// Melhor Formiga colonia
+			textoMelhorFormigaPopulacao[iteracao] = colonia.get(0).getLk() + "";
+
+			// Pior Formiga colonia
+			textoPiorFormigaPopulacao[iteracao] = String.format("%.3f", colonia.get(colonia.size() - 1).getLk());
+
 			colonia.clear();
-			
+
 			iteracao++;
 
 		}
 
-		System.out.println("\n\nMelhor Formiga Todas: "+melhorFormiga.getLk());
-		
+		System.out.println("\n\nMelhor Formiga Todas: " + melhorFormiga.getLk());
+
 		for (int i = 0; i < melhorFormiga.getRota().size(); i++) {
-			System.out.print(" "+melhorFormiga.getRota().get(i));
+			System.out.print(" " + melhorFormiga.getRota().get(i));
 		}
 		System.out.print("\n");
+		
+		for (String mFormiga : textoMelhorGlobal) {
+			gravarArqMelhorGlobal.println(mFormiga);
+		}
+		
+		for (int i = 0; i < textoMelhorFormigaPopulacao.length; i++) {
+			gravarArqPopulacao.println(i + "\t" + textoMelhorFormigaPopulacao[i] + "\t" + textoMediaPopulacao[i] + "\t"
+					+ textoPiorFormigaPopulacao[i]);
+		}
 
 		try {
 			gravarArqPopulacao.close();
 			arqPopulacao.close();
 			gravarArqMelhorGlobal.close();
 			arqMelhorGlobal.close();
-			gravarArqSaidaDiversidade.close();
-			arqSaidaDiversidade.close();
+			//gravarArqSaidaDiversidade.close();
+			//arqSaidaDiversidade.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -177,22 +199,22 @@ public class AntSystem {
 
 	private void criaRota(Formiga formiga) {
 
-		//int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
-		int cidadeInicio = random.nextInt(this.d.length);
-		
+		int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
+		//int cidadeInicio = random.nextInt(this.d.length);
+
 		No arvore = new No(cidadeInicio);
-		//System.out.println("Inicio: " + cidadeInicio);
+		// System.out.println("Inicio: " + cidadeInicio);
 		formiga.setSk(arvore);
 		formiga.insertVertices(arvore);
 
 		this.cidadesVisitadas[cidadeInicio] = true;
-		this.contadorEspeciais = 0;
+		this.contadorEspeciais = 1;
 
-		for (int i = 0; i < this.especiais.length; i++) {
-			if(this.especiais[i] == cidadeInicio){
+		/*for (int i = 0; i < this.especiais.length; i++) {
+			if (this.especiais[i] == cidadeInicio) {
 				this.contadorEspeciais = 1;
 			}
-		}
+		}*/
 
 		ArrayList<No> vertices = formiga.getVertices();
 
@@ -236,22 +258,22 @@ public class AntSystem {
 	}
 
 	private void criaRotaAleatoria(Formiga formiga) {
-		//int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
-		int cidadeInicio = random.nextInt(this.d.length);
-		
+		int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
+		//int cidadeInicio = random.nextInt(this.d.length);
+
 		No arvore = new No(cidadeInicio);
-		//System.out.println("Inicio: " + cidadeInicio);
+		// System.out.println("Inicio: " + cidadeInicio);
 		formiga.setSk(arvore);
 		formiga.insertVertices(arvore);
 
 		this.cidadesVisitadas[cidadeInicio] = true;
-		this.contadorEspeciais = 0;
+		this.contadorEspeciais = 1;
 
-		for (int i = 0; i < this.especiais.length; i++) {
-			if(this.especiais[i] == cidadeInicio){
+		/*for (int i = 0; i < this.especiais.length; i++) {
+			if (this.especiais[i] == cidadeInicio) {
 				this.contadorEspeciais = 1;
 			}
-		}
+		}*/
 
 		ArrayList<No> vertices = formiga.getVertices();
 
@@ -313,7 +335,7 @@ public class AntSystem {
 
 	// Calcula o delta de feromonio
 	private void deltaFeromomio(Formiga formiga, double[][] delta, No arvore) {
-		double deltatIJk = (1/formiga.getVertices().size() * Qk) / formiga.getLk();
+		double deltatIJk = (1 / formiga.getVertices().size() * Qk) / formiga.getLk();
 
 		if (arvore.getSubArvore().size() != 0) {
 
@@ -388,9 +410,9 @@ public class AntSystem {
 	}
 
 	private double calcularDistancia(Formiga formiga) {
-		
+
 		return this.percorrerArvore(formiga, formiga.getSk());
-		
+
 	}
 
 	private double percorrerArvore(Formiga formiga, No arvore) {
@@ -403,7 +425,7 @@ public class AntSystem {
 				distancia += this.d[cidadeI][cidadeJ];
 
 				formiga.insertRota("[" + cidadeI + ", " + cidadeJ + "]");
-				
+
 				distancia += percorrerArvore(formiga, arvore.getSubArvore().get(i));
 			}
 
@@ -481,16 +503,16 @@ public class AntSystem {
 			double[] q = { 0.5 };
 			double[] ro = { 0.2 };
 			int[] tamColonia = { 50 };
-			int[] iteracoes = { 100000 };
+			int[] iteracoes = { 100, 1000, 10000 };
 			// 0 - roleta, 1 - torneio
 			int[] selecao = { 0 };
 			String[] problema = { "steinb1" };
 			// Probabilidade de selecionar uma cidade de forma aleatorioa
 			double[] pobSelecaoAleatoria = { 0 };
 			// Sem controle de diversidade = 0; com controle de diversidade = 1
-			int[] diversidade = { 0};
+			int[] diversidade = { 0 };
 
-			int numeroExecucoes = 1;
+			int numeroExecucoes = 30;
 
 			for (int div = 0; div < diversidade.length; div++) {
 				for (int sa = 0; sa < pobSelecaoAleatoria.length; sa++) {
@@ -646,7 +668,7 @@ class Formiga implements Comparable<Formiga> {
 	public void insertRota(String rota) {
 		this.rota.add(rota);
 	}
-	
+
 	public void setRota(ArrayList<String> rota) {
 		this.rota = (ArrayList<String>) rota.clone();
 	}

@@ -6,7 +6,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 import java.util.Scanner;
@@ -20,26 +19,21 @@ public class ASRank {
 	private ArrayList<Formiga> colonia;
 	private ArrayList<Integer> cidadesAVisitar;
 	private Formiga melhorFormiga;
-	private int numeroFormigas, numeroIteracoes, selecao, delt, diversidade;
-	boolean[] cidadesSelecionadasK;
+	private int numeroFormigas, numeroIteracoes, selecao, delt, diversidade, contadorEspeciais;
+	boolean[] cidadesSelecionadasK, cidadesVisitadas;
 	private FileWriter arqPopulacao, arqMelhorGlobal, arqSaidaDiversidade;
 	private PrintWriter gravarArqPopulacao, gravarArqMelhorGlobal, gravarArqSaidaDiversidade;
 	private Random random;
 	public String saida;
+	private int[] especiais;
+	private ArrayList<int[]> arestas;
 
 	public ASRank(double alfa, double beta, double qk, double ro, int numeroFormigas, int numeroIteracoes, int selecao,
 			int diversidadae, int delt, double probSelecaoAleatoria, String entrada, String saidaPopulacao,
 			String saidaMelhorGlobal, String saidaDiversidade) {
-		if (entrada.contains("brazil27") || entrada.contains("bays29")) {
-			this.iniciarAmbienteFullMatrix(entrada);
-		} else if (entrada.contains("att532")) {
-			this.iniciarAmbienteCoordAtt(entrada);
-		} else if (entrada.contains("pcb1173") || entrada.contains("eil76") || entrada.contains("kroA100")) {
-			this.iniciarAmbienteCoordEuc_2d(entrada);
-		} else if (entrada.contains("pa561")) {
-			this.iniciarAmbienteLowerDiagRow(entrada);
-		} else
-			this.iniciarAmbiente(entrada);
+		// Abrir arquivo do problema
+		this.iniciarAmbiente(entrada);
+		
 		this.alfa = alfa;
 		this.alfatemp = alfa;
 		this.beta = beta;
@@ -66,6 +60,7 @@ public class ASRank {
 		this.probSelecaoAleatoria = probSelecaoAleatoria;
 		this.delt = delt;
 		this.diversidade = diversidadae;
+		this.cidadesVisitadas = new boolean[this.d.length];
 	}
 
 	private void iniciar() {
@@ -87,127 +82,43 @@ public class ASRank {
 
 			colonia = new ArrayList<Formiga>();
 			for (int k = 0; k < numeroFormigas; k++) {
-				int[] caminhoFormigak = new int[d.length + 1];
-				for (int j = 0; j < caminhoFormigak.length; j++) {
-					caminhoFormigak[j] = -1;
-				}
 
-				this.cidadesAVisitar = new ArrayList<Integer>();
-				for (int i = 0; i < this.d.length; i++) {
-					this.cidadesAVisitar.add(new Integer(i));
-				}
-
-				cidadesSelecionadasK = new boolean[d.length];
-
-				Formiga formiga = new Formiga(caminhoFormigak);
+				Formiga formiga = new Formiga();
 
 				if (iteracao < (int) (this.numeroIteracoes / 10)) {
 					// Cria a rota aleatoria da formiga e atualiza a distancia
 					this.criaRotaAleatoria(formiga);
 				} else {
 					// Cria a rota da formiga e atualiza a distancia
-					this.criaRota(formiga, k);
+					this.criaRota(formiga);
 				}
+				
+				formiga.setLk(this.calcularDistancia(formiga));
 
 				colonia.add(formiga);
 			}
 
-			// Ranqueia a população
+			// Ranqueia a populaÃ§Ã£o
 			this.rank();
 
 			// Atualizar Feromonio
 			this.atualizaFeromomio();
 
-			textoMelhorGlobal[iteracao] = iteracao + "\t" + melhorFormiga.getLk();
-
-			// Media de fitness da colonia
-			double fitnessMedio = 0.0;
-			for (Formiga formiga : colonia) {
-				fitnessMedio += formiga.getLk();
-			}
-			fitnessMedio = fitnessMedio / colonia.size();
-			textoMediaPopulacao[iteracao] = String.format("%.6f", fitnessMedio);
-
-			// Melhor Formiga colonia
-			textoMelhorFormigaPopulacao[iteracao] = colonia.get(0).getLk() + "";
-
-			// Pior Formiga colonia
-			textoPiorFormigaPopulacao[iteracao] = String.format("%.6f", colonia.get(colonia.size() - 1).getLk());
-
-			diversidades[iteracao] = this.calculaDiversidadePeloPheromoneRatio();
-
-			if (this.diversidade == 1) {
-				/*if (diversidades[iteracao] <= 4) {
-					this.probSelecaoAleatoria = 0.3;
-				} else if (diversidades[iteracao] >= 21) {
-					this.probSelecaoAleatoria = 0.0;
-				}*/
-
-				/*if (iteracao > 20) {
-					double desvio = this.desvioPadraoPopulacional(diversidades, iteracao);
-					System.out.println(desvio);
-					if (desvio < 0.3) {
-						beta = 0;
-					} else if (desvio > 1.2) {
-						beta = betatemp;
-					}
-				}*/
-				
-				if (diversidades[iteracao] <= 4) {
-					beta = 0;
-				} else if (diversidades[iteracao] >= 17) {
-					beta = betatemp;
-				}
-			}
-			textoDiversidade[iteracao] = iteracao + "\t" + diversidades[iteracao];// this.calculaDiversidadePelaSomaDistancias();
-
+			System.out.println("MelhorIteração: "+melhorFormiga.getLk());
+			
 			colonia.clear();
 
 			iteracao++;
 
 		}
-		/*
-		 * int ci = 0; ArrayList<Integer> cidades = new ArrayList();
-		 * cidades.add(0); System.out.print(ci+","); for (int i = 0; i <
-		 * this.feromonio.length; i++) { int cj = -1; double maxefero = 0.0; for
-		 * (int j = 0; j < this.feromonio.length; j++) {
-		 * if(this.feromonio[ci][j] > maxefero && !cidades.contains(j)){
-		 * maxefero = this.feromonio[ci][j]; cj = j; } }
-		 * 
-		 * ci = cj; cidades.add(ci); System.out.print(cj+",");
-		 * 
-		 * }
-		 */
-
-		// System.out.print("\t");
-
-		saida = textoMelhorGlobal[textoMelhorGlobal.length - 1] + "\t";
-
-		for (int cid : melhorFormiga.getSk()) {
-			saida += cid + ",";
+		
+		System.out.println("\n\nMelhor Formiga Todas: "+melhorFormiga.getLk());
+		
+		for (int i = 0; i < melhorFormiga.getRota().size(); i++) {
+			System.out.print(" "+melhorFormiga.getRota().get(i));
 		}
-
-		System.out.println(saida);
-
-		for (String mFormiga : textoMelhorGlobal) {
-			gravarArqMelhorGlobal.println(mFormiga);
-		}
-
-		for (int i = 0; i < textoMelhorFormigaPopulacao.length; i++) {
-			gravarArqPopulacao.println(i + "\t" + textoMelhorFormigaPopulacao[i] + "\t" + textoMediaPopulacao[i] + "\t"
-					+ textoPiorFormigaPopulacao[i]);
-		}
-
-		for (String txDiversidade : textoDiversidade) {
-			gravarArqSaidaDiversidade.println(txDiversidade);
-		}
-
-		/*
-		 * for (int i = 0; i < feromonio.length; i++) { for (int j = 0; j <
-		 * feromonio.length; j++) { gravarArqPopulacao.printf(feromonio[i][j] +
-		 * "\t"); } gravarArqPopulacao.printf("\n"); }
-		 */
-
+		System.out.print("\n");
+		
 		try {
 			gravarArqPopulacao.close();
 			arqPopulacao.close();
@@ -290,82 +201,137 @@ public class ASRank {
 		return 100 * (numeroArestasComFeromonio / numeroArestas);
 	}
 
-	private void criaRota(Formiga formiga, int k) {
-		for (int posicao = 0; posicao < formiga.getSk().length - 1; posicao++) {
+	private void criaRota(Formiga formiga) {
+		//int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
+		int cidadeInicio = random.nextInt(this.d.length);
+		
+		No arvore = new No(cidadeInicio);
+		//System.out.println("Inicio: " + cidadeInicio);
+		formiga.setSk(arvore);
+		formiga.insertVertices(arvore);
 
-			int cidadeJ = -1;
+		this.cidadesVisitadas[cidadeInicio] = true;
+		this.contadorEspeciais = 0;
 
-			if (posicao == 0) {
-				cidadeJ = this.cidadesAVisitar.get(k);// random.nextInt(this.cidadesAVisitar.size()));
-				formiga.setCidade(posicao, cidadeJ);
-				cidadesSelecionadasK[cidadeJ] = true;
-				this.cidadesAVisitar.remove(new Integer(cidadeJ));
-			} else {
-				// Probabilidade de selecionar a cidade de forma aleatoria
-				if (this.probSelecaoAleatoria > 0) {
-					if (random.nextDouble() < this.probSelecaoAleatoria) {
-						cidadeJ = this.cidadesAVisitar.get(random.nextInt(this.cidadesAVisitar.size()));
-					} else {
-						if (this.selecao == 0) {
-							cidadeJ = this.selecionaCidadeJRoleta(formiga, posicao);
-						} else if (this.selecao == 1) {
-							cidadeJ = this.selecionaCidadeJTorneio(formiga, posicao);
-						}
-					}
-				} else {
-					if (this.selecao == 0) {
-						cidadeJ = this.selecionaCidadeJRoleta(formiga, posicao);
-					} else if (this.selecao == 1) {
-						cidadeJ = this.selecionaCidadeJTorneio(formiga, posicao);
+		for (int i = 0; i < this.especiais.length; i++) {
+			if(this.especiais[i] == cidadeInicio){
+				this.contadorEspeciais = 1;
+			}
+		}
+
+		ArrayList<No> vertices = formiga.getVertices();
+
+		while (this.contadorEspeciais < this.especiais.length) {
+			ArrayList<int[]> vizinhanca = new ArrayList<int[]>();
+
+			for (int i = 0; i < this.arestas.size(); i++) {
+				if (this.cidadesVisitadas[this.arestas.get(i)[0]] == true
+						&& this.cidadesVisitadas[this.arestas.get(i)[1]] == false) {
+					vizinhanca.add(this.arestas.get(i));
+				}
+
+			}
+
+			if (vizinhanca.size() != 0) {
+
+				// A aresta deve ser selecionada pela probabilidade
+				int indiceAresta = this.arestaSelecionadaJRoleta(formiga, vizinhanca);
+
+				int escolhido = vizinhanca.get(indiceAresta)[1];
+
+				if (this.cidadesVisitadas[escolhido] == false) {
+					if (this.d[vizinhanca.get(indiceAresta)[0]][escolhido] != 0) {
+						this.cidadesVisitadas[escolhido] = true;
+						vertices.add(new No(escolhido));
+						int origemEscolhido = vizinhanca.get(indiceAresta)[0];
+						formiga.insertAposCidade(origemEscolhido, vertices.get(vertices.size() - 1));
 					}
 				}
 
-				formiga.setCidade(posicao, cidadeJ);
-				cidadesSelecionadasK[cidadeJ] = true;
-				this.cidadesAVisitar.remove(new Integer(cidadeJ));
-				// Calcular a distancia entre o elemento na posição
-				// anterior e o
-				// elemento inserido na posição atual
-				formiga.setLk(formiga.getLk() + d[formiga.getSk()[posicao - 1]][cidadeJ]);
+				for (int i = 0; i < this.especiais.length; i++) {
+					if (escolhido == this.especiais[i]) {
+						this.contadorEspeciais++;
+					}
+				}
 			}
+			else break;
+
 		}
 
-		formiga.setCidade(formiga.getSk().length - 1, formiga.getSk()[0]);
-		int ultima = formiga.getSk()[formiga.getSk().length - 2];
-		int primeira = formiga.getSk()[formiga.getSk().length - 1];
-		double distancia_ultima_primeira = d[ultima][primeira];
-		formiga.setLk(formiga.getLk() + distancia_ultima_primeira);
+		cidadesVisitadas = new boolean[this.d.length];
 	}
 
 	private void criaRotaAleatoria(Formiga formiga) {
-		for (int posicao = 0; posicao < formiga.getSk().length - 1; posicao++) {
+		//int cidadeInicio = this.especiais[random.nextInt(this.especiais.length)];
+		int cidadeInicio = random.nextInt(this.d.length);
+		No arvore = new No(cidadeInicio);
+		//System.out.println("Inicio: " + cidadeInicio);
+		formiga.setSk(arvore);
+		formiga.insertVertices(arvore);
 
-			int cidadeJ = -1;
-			cidadeJ = this.cidadesAVisitar.get(random.nextInt(this.cidadesAVisitar.size()));
-			formiga.setCidade(posicao, cidadeJ);
-			cidadesSelecionadasK[cidadeJ] = true;
-			this.cidadesAVisitar.remove(new Integer(cidadeJ));
-			if (posicao > 0) {
-				formiga.setLk(formiga.getLk() + d[formiga.getSk()[posicao - 1]][posicao]);
+		this.cidadesVisitadas[cidadeInicio] = true;
+		this.contadorEspeciais = 0;
+
+		for (int i = 0; i < this.especiais.length; i++) {
+			if(this.especiais[i] == cidadeInicio){
+				this.contadorEspeciais = 1;
 			}
 		}
+		
+		ArrayList<No> vertices = formiga.getVertices();
 
-		formiga.setCidade(formiga.getSk().length - 1, formiga.getSk()[0]);
-		int ultima = formiga.getSk()[formiga.getSk().length - 2];
-		int primeira = formiga.getSk()[formiga.getSk().length - 1];
-		double distancia_ultima_primeira = d[ultima][primeira];
-		formiga.setLk(formiga.getLk() + distancia_ultima_primeira);
+		while (this.contadorEspeciais < this.especiais.length) {
+			ArrayList<int[]> vizinhanca = new ArrayList<int[]>();
+
+			for (int i = 0; i < this.arestas.size(); i++) {
+				if (this.cidadesVisitadas[this.arestas.get(i)[0]] == true
+						&& this.cidadesVisitadas[this.arestas.get(i)[1]] == false) {
+					vizinhanca.add(this.arestas.get(i));
+				}
+
+			}
+
+			if (vizinhanca.size() != 0) {
+
+				int indiceAresta = random.nextInt(vizinhanca.size());
+
+				int escolhido = vizinhanca.get(indiceAresta)[1];
+
+				if (this.cidadesVisitadas[escolhido] == false) {
+					if (this.d[vizinhanca.get(indiceAresta)[0]][escolhido] != 0) {
+						this.cidadesVisitadas[escolhido] = true;
+						vertices.add(new No(escolhido));
+						int origemEscolhido = vizinhanca.get(indiceAresta)[0];
+						formiga.insertAposCidade(origemEscolhido, vertices.get(vertices.size() - 1));
+					}
+				}
+
+				for (int i = 0; i < this.especiais.length; i++) {
+					if (escolhido == this.especiais[i]) {
+						this.contadorEspeciais++;
+					}
+				}
+			}
+			else break;
+
+		}
+
+		cidadesVisitadas = new boolean[this.d.length];
 	}
 
 	private void atualizaFeromomio() {
 
 		double[][] delta = new double[feromonio.length][feromonio[0].length];
 
-		for (int i = 0; i < delt; i++) {
+		if(this.delt > colonia.size()){
+			this.delt = colonia.size();
+		}
+		
+		for (int i = 0; i < this.delt; i++) {
 			Formiga formiga = colonia.get(i);
-			deltaFeromomio(formiga, delta);
+			deltaFeromomio(formiga, delta, formiga.getSk());
 
-			deltaFeromomio(this.melhorFormiga, delta);
+			deltaFeromomio(this.melhorFormiga, delta, formiga.getSk());
 		}
 
 		// double p = Math.random();
@@ -380,25 +346,20 @@ public class ASRank {
 	}
 
 	// Calcula o delta de feromonio
-	private void deltaFeromomio(Formiga formiga, double[][] delta) {
+	private void deltaFeromomio(Formiga formiga, double[][] delta, No arvore) {
+		double deltatIJk = (1/formiga.getVertices().size() * Qk) / formiga.getLk();
 
-		double deltatIJk = this.Qk / formiga.getLk();
+		if (arvore.getSubArvore().size() != 0) {
 
-		for (int i = 0; i < formiga.getSk().length; i++) {
+			for (int i = 0; i < arvore.getSubArvore().size(); i++) {
+				int cidadeI = arvore.getVertice();
+				int cidadeJ = arvore.getSubArvore().get(i).getVertice();
 
-			int cidadeI = -1;
-			int cidadeJ = -1;
+				delta[cidadeI][cidadeJ] = deltatIJk;
+				delta[cidadeJ][cidadeI] = deltatIJk;
 
-			if (i == formiga.getSk().length - 1) {
-				cidadeI = formiga.getSk()[i];
-				cidadeJ = formiga.getSk()[0];
-			} else {
-				cidadeI = formiga.getSk()[i];
-				cidadeJ = formiga.getSk()[i + 1];
+				deltaFeromomio(formiga, delta, arvore.getSubArvore().get(i));
 			}
-
-			delta[cidadeI][cidadeJ] = deltatIJk;
-			// delta[cidadeJ][cidadeI] = deltatIJk;
 		}
 	}
 
@@ -408,100 +369,29 @@ public class ASRank {
 	 * @param posicao
 	 * @return
 	 */
-	private int selecionaCidadeJRoleta(Formiga formiga, int posicao) {
-		int i = formiga.getSk()[posicao - 1];
-		double aleatorio = random.nextDouble();
-		this.atualizaSomatorio(i);
-
-		int escolhida = -1;
-
-		// Seleciona somente as que nao foram escolhidas
-
-		double somatorioProbabilidades = 0.0;
-		ArrayList<Integer> aVisitar = (ArrayList<Integer>) this.cidadesAVisitar.clone();
-		while (!aVisitar.isEmpty()) {
-			int j = (int) aVisitar.remove(0);
-			double prob = getProbabilidade(i, j);
-			somatorioProbabilidades += prob;
-			if (aleatorio < somatorioProbabilidades) {
-				escolhida = j;
-				break;
-			}
-
+	private int arestaSelecionadaJRoleta(Formiga formiga,  ArrayList<int[]> vizinhanca) {
+		double somatorio = 0;
+		for (int i = 0; i < vizinhanca.size(); i++) {
+			somatorio += atratividadeClassicaDaAresta(vizinhanca.get(i)[0], vizinhanca.get(i)[1]);
 		}
 
-		if (escolhida == -1) {
-			System.out.println(escolhida);
-		}
-
-		return escolhida;
-	}
-
-	private int selecionaCidadeJTorneio(Formiga formiga, int posicao) {
-		int i = formiga.getSk()[posicao - 1];
-		// double aleatorio = random.nextDouble();
-		// this.atualizaSomatorio(i);
-
-		int escolhida = -1;
-
-		// Seleciona somente as que nao foram escolhidas
-
-		double somatorioProbabilidades = 0.0;
-		ArrayList<Integer> aVisitar = (ArrayList<Integer>) this.cidadesAVisitar.clone();
-		ArrayList<Integer> aEscolherAleatorio = new ArrayList<Integer>();
-		int tamanhoAVisitar = aVisitar.size();
-		int tamanhoTorneio = (aVisitar.size() * 0.1) < 4 ? 4 : (int) (aVisitar.size() * 0.1);
-		// System.out.println(tamanhoAVisitar);
-		while (aEscolherAleatorio.size() < tamanhoTorneio && aEscolherAleatorio.size() < tamanhoAVisitar) {
-			int j = (int) aVisitar.remove(random.nextInt(aVisitar.size()));
-			aEscolherAleatorio.add(j);
-		}
-
-		// double feromonioC = this.getFeromonio(i, aEscolherAleatorio.get(0));
-		double dividendo = this.atratividadeClassicaDaAresta(i, aEscolherAleatorio.get(0));
-
-		escolhida = aEscolherAleatorio.get(0);
-
-		for (int j = 0; j < aEscolherAleatorio.size(); j++) {
-			// if(feromonioC > this.getFeromonio(i, aEscolherAleatorio.get(j)))
-			// {
-			if (dividendo > this.atratividadeClassicaDaAresta(i, aEscolherAleatorio.get(j))) {
-				// feromonioC = this.getFeromonio(i, aEscolherAleatorio.get(j));
-				dividendo = this.atratividadeClassicaDaAresta(i, aEscolherAleatorio.get(j));
-				escolhida = aEscolherAleatorio.get(j);
+		double indice = Math.random();
+		double somatorioProbabilidades = 0;
+		for (int i = 0; i < vizinhanca.size(); i++) {
+			somatorioProbabilidades += atratividadeClassicaDaAresta(vizinhanca.get(i)[0], vizinhanca.get(i)[1])
+					/ somatorio;
+			if (indice <= somatorioProbabilidades) {
+				return i;
 			}
 		}
 
-		if (escolhida == -1) {
-			System.out.println(escolhida);
-		}
-
-		return escolhida;
-	}
-
-	// probabilidade de estar na cidade i e ir para j
-	private double getProbabilidade(int i, int j) {
-		return this.dividendosProbabilidades[i][j] / somatorio;
-	}
-
-	// somatorio dos dividendos
-	private double somatorio;
-
-	private void atualizaSomatorio(int i) {
-		somatorio = 0;
-
-		ArrayList<Integer> aVisitar = (ArrayList<Integer>) this.cidadesAVisitar.clone();
-		while (!aVisitar.isEmpty()) {
-			int j = (int) aVisitar.remove(0);
-			somatorio += atratividadeClassicaDaAresta(i, j);
-		}
-
+		return -1;
 	}
 
 	// calcula os dividendos
 	private double atratividadeClassicaDaAresta(int i, int j) {
-		dividendosProbabilidades[i][j] = Math.pow(feromonio[i][j], this.alfa) * Math.pow(1 / d[i][j], this.beta);
-		return dividendosProbabilidades[i][j];
+		double dividendosProbabilidades = Math.pow(feromonio[i][j], this.alfa) * Math.pow(1 / d[i][j], this.beta);
+		return dividendosProbabilidades;
 	}
 
 	// atualiza feromonio
@@ -519,261 +409,100 @@ public class ASRank {
 		return this.feromonio[i][j];
 	}
 
-	// Ranqueamento da populaÃ§Ã£o
+	// Ranqueamento da populaÃƒÂ§ÃƒÂ£o
 	public void rank() {
 
 		Collections.sort(this.colonia);
 
 		if (this.melhorFormiga.getLk() > this.colonia.get(0).getLk()) {
 			this.melhorFormiga = new Formiga(this.colonia.get(0).getLk(), this.colonia.get(0).getSk());
+			this.melhorFormiga.setRota(colonia.get(0).getRota());
+			this.melhorFormiga.setVertices(colonia.get(0).getVertices());
+		}
+	}
+	
+	private double calcularDistancia(Formiga formiga) {
+		
+		return this.percorrerArvore(formiga, formiga.getSk());
+		
+	}
+	
+	private double percorrerArvore(Formiga formiga, No arvore) {
+
+		if (arvore.getSubArvore().size() != 0) {
+			double distancia = 0;
+			for (int i = 0; i < arvore.getSubArvore().size(); i++) {
+				int cidadeI = arvore.getVertice();
+				int cidadeJ = arvore.getSubArvore().get(i).getVertice();
+				distancia += this.d[cidadeI][cidadeJ];
+
+				formiga.insertRota("[" + cidadeI + ", " + cidadeJ + "]");
+				
+				distancia += percorrerArvore(formiga, arvore.getSubArvore().get(i));
+			}
+
+			return distancia;
+
+		} else {
+			return 0;
 		}
 	}
 
-	// Realiza aleitura do arquivo do tsp com as distÃ¢ncias ou
+	// Realiza aleitura do arquivo do tsp com as distÃƒÂ¢ncias ou
 	// coordenadas
 	private void iniciarAmbiente(String path) {
-		try {
+		// TODO Auto-generated method stub
 
-			double[][] E;
+				this.arestas = new ArrayList<int[]>();
 
-			int dimensao = 0;
-			Scanner f = new Scanner(new File(path));
-			String s = f.nextLine();
+				Scanner f;
+				try {
+					f = new Scanner(new File(path));
+					String[] s = f.nextLine().split(" ");
+					int tamanho = Integer.parseInt(s[1]);
 
-			while (!s.contains("DIMENSION: ")) {
-				s = f.nextLine();
-			}
-			dimensao = Integer.parseInt(s.split(" ")[1]);
+					double[][] E = new double[tamanho + 1][tamanho + 1];
 
-			E = new double[dimensao][dimensao];
+					while (f.hasNext() && (s = f.nextLine().split(" ")).length > 2) {
 
-			while (!s.contains("EDGE_WEIGHT_SECTION")) {
-				s = f.nextLine();
-			}
+						int i = Integer.parseInt(s[1]);
+						int j = Integer.parseInt(s[2]);
+						int d = Integer.parseInt(s[3]);
 
-			int i = 0;
-			s = f.nextLine();
-			while (f.hasNext() && (!s.equals("EOF") || !s.equals("eof"))) {
+						int[] aresta1 = { i, j, d };
+						int[] aresta2 = { j, i, d };
 
-				String[] linha = s.split(" ");
-				int j = i + 1;
-				for (int z = 0; z < linha.length; z++) {
-					E[i][j] = Double.parseDouble(linha[z]);
-					E[j][i] = Double.parseDouble(linha[z]);
-					j++;
+						arestas.add(aresta1);
+						arestas.add(aresta2);
+
+						E[i][j] = d;
+						E[j][i] = d;
+					}
+
+					int nEspeciais = Integer.parseInt(s[1]);
+
+					int[] especiais = new int[nEspeciais];
+
+					int i = 0;
+					while (f.hasNext()) {
+
+						int no = f.nextInt();
+
+						especiais[i] = no;
+
+						i++;
+					}
+
+					f.close();
+
+					this.d = E;
+					this.especiais = especiais;
+
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-				i++;
-				s = f.nextLine();
-			}
 
-			f.close();
-
-			this.d = E;
-
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
-	private void iniciarAmbienteCoordAtt(String path) {
-		try {
-
-			int dimensao = 0;
-			Scanner f = new Scanner(new File(path));
-			String s = f.nextLine();
-
-			while (!s.contains("DIMENSION: ")) {
-				s = f.nextLine();
-			}
-			dimensao = Integer.parseInt(s.split(" ")[1]);
-
-			while (!s.contains("NODE_COORD_SECTION")) {
-				s = f.nextLine();
-			}
-			ArrayList<double[]> lista = new ArrayList<double[]>();
-			s = f.next();
-			while (f.hasNext() && (!s.equals("EOF") && !s.equals("eof"))) {
-				double x = f.nextDouble();
-				double y = f.nextDouble();
-				lista.add(new double[] { x, y });
-				s = f.next();
-			}
-
-			double[][] E = new double[dimensao][dimensao];
-
-			for (int i = 0; i < E.length; i++) {
-				for (int j = 0; j < E.length; j++) {
-
-					double xd = lista.get(i)[0] - lista.get(j)[0];
-					double yd = lista.get(i)[1] - lista.get(j)[1];
-					double rij = Math.sqrt(((xd * xd) + (yd * yd)) / 10);
-					double tij = (int) Math.rint(rij);
-					double dij = (tij < rij) ? tij + 1 : tij;
-
-					E[i][j] = dij;
-					E[j][i] = dij;
-
-				}
-			}
-
-			f.close();
-
-			this.d = E;
-
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	private void iniciarAmbienteCoordEuc_2d(String path) {
-		try {
-
-			int dimensao = 0;
-			Scanner f = new Scanner(new File(path));
-			String s = f.nextLine();
-
-			while (!s.contains("DIMENSION: ")) {
-				s = f.nextLine();
-			}
-			dimensao = Integer.parseInt(s.split(" ")[1]);
-
-			while (!s.contains("NODE_COORD_SECTION")) {
-				s = f.nextLine();
-			}
-			ArrayList<double[]> lista = new ArrayList<double[]>();
-			s = f.next();
-			while (f.hasNext() && (!s.equals("EOF") && !s.equals("eof"))) {
-				double x = f.nextDouble();
-				double y = f.nextDouble();
-				lista.add(new double[] { x, y });
-				s = f.next();
-			}
-
-			double[][] E = new double[dimensao][dimensao];
-
-			for (int i = 0; i < E.length; i++) {
-				for (int j = 0; j < i; j++) {
-
-					double xd = Math.abs(lista.get(i)[0] - lista.get(j)[0]);
-					double yd = Math.abs(lista.get(i)[1] - lista.get(j)[1]);
-					double dij = (int) Math.rint((Math.sqrt(xd * xd + yd * yd)));
-
-					E[i][j] = dij;
-					E[j][i] = dij;
-
-				}
-			}
-
-			f.close();
-
-			this.d = E;
-
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	// Realiza aleitura do arquivo do tsp com as distÃ¢ncias
-	private void iniciarAmbienteFullMatrix(String path) {
-		try {
-
-			double[][] E;
-
-			int dimensao = 0;
-			Scanner f = new Scanner(new File(path));
-			String s = f.nextLine();
-
-			while (!s.contains("DIMENSION: ")) {
-				s = f.nextLine();
-			}
-			dimensao = Integer.parseInt(s.split(" ")[1]);
-
-			E = new double[dimensao][dimensao];
-
-			while (!s.contains("EDGE_WEIGHT_SECTION")) {
-				s = f.nextLine();
-			}
-
-			int i = 0;
-			s = f.nextLine();
-			while (f.hasNext() && (!s.equals("EOF") && !s.equals("eof"))) {
-
-				String[] linha = s.split(" ");
-				for (int z = 0; z < linha.length; z++) {
-					if (linha[z].contentEquals("Inf")) {
-						E[i][z] = 1000000000;
-					} else
-						E[i][z] = Double.parseDouble(linha[z]);
-
-				}
-				i++;
-				s = f.nextLine();
-			}
-
-			f.close();
-
-			this.d = E;
-
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
-	private void iniciarAmbienteLowerDiagRow(String path) {
-		try {
-
-			double[][] E;
-
-			int dimensao = 0;
-			Scanner f = new Scanner(new File(path));
-			String s = f.nextLine();
-
-			while (!s.contains("DIMENSION: ")) {
-				s = f.nextLine();
-			}
-			dimensao = Integer.parseInt(s.split(" ")[1]);
-
-			E = new double[dimensao][dimensao];
-
-			while (!s.contains("EDGE_WEIGHT_SECTION")) {
-				s = f.nextLine();
-			}
-
-			int i = 0;
-			s = f.nextLine();
-			while (f.hasNext() && (!s.equals("EOF") && !s.equals("eof"))) {
-
-				String[] linha = s.split(" ");
-				int j = 0;
-				for (int z = 0; z < linha.length; z++) {
-					E[i][z] = Double.parseDouble(linha[z]);
-					E[z][i] = Double.parseDouble(linha[z]);
-					j++;
-				}
-				i++;
-
-				s = f.nextLine();
-			}
-			f.close();
-
-			this.d = E;
-
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	public static void main(String[] args) {
@@ -786,50 +515,23 @@ public class ASRank {
 			double[] beta = { 5 };
 			double[] q = { 0.5 };
 			double[] ro = { 0.2 };
-			int[] tamColonia = { 58 };
-			int[] iteracoes = { 1000 };
+			int[] tamColonia = { 50 };
+			int[] iteracoes = { 100 };
 			// 0 - roleta, 1 - torneio
 			int[] selecao = { 0 };
-			String[] problema = { "brazil58",
-					// "att532",
-					// "d1291",
-					"bays29"
-					// "att48",
-					// "kroA100",
-					// "eil76",
-					// "pa561"
-			};
+			String[] problema = { "steinb1" };
 			// Probabilidade de selecionar uma cidade de forma aleatorioa
 			double[] pobSelecaoAleatoria = { 0 };
 			int[] del = { 6 };
 			// Sem controle de diversidade = 0; com controle de diversidade = 1
-			int[] diversidade = { 1 };
+			int[] diversidade = { 0 };
 
-			int numeroExecucoes = 50;
+			int numeroExecucoes = 1;
 
 			for (int div = 0; div < diversidade.length; div++) {
-
 				for (int delt = 0; delt < del.length; delt++) {
-
 					for (int sa = 0; sa < pobSelecaoAleatoria.length; sa++) {
 						for (int pr = 0; pr < problema.length; pr++) {
-
-							if (problema[pr].equals("att532"))
-								tamColonia[0] = 532;
-							else if (problema[pr].equals("d1291"))
-								tamColonia[0] = 1291;
-							else if (problema[pr].equals("eil76"))
-								tamColonia[0] = 76;
-							else if (problema[pr].equals("kroA100"))
-								tamColonia[0] = 100;
-							else if (problema[pr].equals("bays29"))
-								tamColonia[0] = 29;
-							else if (problema[pr].equals("brazil58"))
-								tamColonia[0] = 58;
-							else if (problema[pr].equals("pa561"))
-								tamColonia[0] = 561;
-							else if (problema[pr].equals("att48"))
-								tamColonia[0] = 48;
 
 							arqSaidas = new FileWriter("src\\Testes\\Execs\\ASRank\\SteinerTree\\saida_testes_" + problema[pr]
 									+ "_diversidade-" + diversidade[div] + ".txt");
@@ -846,7 +548,7 @@ public class ASRank {
 														for (int l2 = 0; l2 < numeroExecucoes; l2++) {
 
 															String entrada = "src\\Testes\\SteinerTree\\" + problema[pr]
-																	+ ".tsp";
+																	+ ".txt";
 															String saidaPopulacao = "src\\Testes\\Execs\\ASRank\\SteinerTree\\Testes_"
 																	+ l2 + "execucao_" + problema[pr]
 																	+ "_saidaPopulacao tamColonia-" + tamColonia[k2]
@@ -923,21 +625,28 @@ public class ASRank {
 class Formiga implements Comparable<Formiga> {
 
 	private double Lk = Integer.MAX_VALUE;
-	private int[] Sk;
+	private No Sk;
+	private ArrayList<No> vertices;
+	private ArrayList<String> rota;
 
 	public Formiga() {
-
+		vertices = new ArrayList<No>();
+		rota = new ArrayList<String>();
 	}
 
-	public Formiga(int[] Sk) {
+	public Formiga(No Sk) {
 		this.Lk = 0.0;
 		this.Sk = Sk;
+		vertices = new ArrayList<No>();
+		rota = new ArrayList<String>();
 	}
 
-	public Formiga(double Lk, int[] Sk) {
+	public Formiga(double Lk, No Sk) {
 		super();
 		this.Lk = Lk;
 		this.Sk = Sk;
+		vertices = new ArrayList<No>();
+		rota = new ArrayList<String>();
 	}
 
 	public double getLk() {
@@ -948,16 +657,46 @@ class Formiga implements Comparable<Formiga> {
 		this.Lk = Lk;
 	}
 
-	public int[] getSk() {
+	public No getSk() {
 		return Sk;
 	}
 
-	public void setCidade(int posicao, int cidade) {
-		this.Sk[posicao] = cidade;
+	public void insertAposCidade(int posicao, No novoNo) {
+
+		for (int i = 0; i < this.vertices.size(); i++) {
+			if (this.vertices.get(i).getVertice() == posicao) {
+				this.vertices.get(i).getSubArvore().add(novoNo);
+			}
+		}
 	}
 
-	public void setSk(int[] Sk) {
+	public void setSk(No Sk) {
 		this.Sk = Sk;
+	}
+
+	public ArrayList<No> getVertices() {
+		return vertices;
+	}
+
+	public void insertVertices(No vertice) {
+		this.vertices.add(vertice);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void setVertices(ArrayList<No> vertices) {
+		this.vertices = (ArrayList<No>)vertices.clone();
+	}
+
+	public ArrayList<String> getRota() {
+		return rota;
+	}
+
+	public void insertRota(String rota) {
+		this.rota.add(rota);
+	}
+	
+	public void setRota(ArrayList<String> rota) {
+		this.rota = (ArrayList<String>) rota.clone();
 	}
 
 	@Override
@@ -972,4 +711,41 @@ class Formiga implements Comparable<Formiga> {
 		return 0;
 	}
 
+}
+
+class No {
+
+	Integer vertice;
+	ArrayList<No> subArvore;
+
+	No(Integer vertice, ArrayList<No> vizinhos) {
+		this.setVertice(vertice);
+		this.setSubArvore(vizinhos);
+	}
+
+	No(Integer vertice) {
+		this.setVertice(vertice);
+		this.setSubArvore(new ArrayList<No>());
+	}
+
+	No() {
+		vertice = -1;
+		subArvore = null;
+	}
+
+	public Integer getVertice() {
+		return vertice;
+	}
+
+	public void setVertice(Integer vertice) {
+		this.vertice = vertice;
+	}
+
+	public ArrayList<No> getSubArvore() {
+		return subArvore;
+	}
+
+	public void setSubArvore(ArrayList<No> vizinhanca) {
+		this.subArvore = vizinhanca;
+	}
 }

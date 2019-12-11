@@ -1,0 +1,8 @@
+Mann-Whitney U-Test Steinb1
+	0.0000	0.1968
+	0.1968	0.0000
+
+
+para o Steinb1 	 Media 	 Max 	 Min
+ASR_steinb1_1000	      111.4	        121	         95
+AS_steinb1_1000	110.1333333	        118	        101
